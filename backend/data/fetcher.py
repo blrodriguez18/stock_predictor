@@ -18,9 +18,9 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
 
     # --- S&P 500 monthly returns ---
     sp500 = yf.download("^GSPC", start=start, end=end, interval="1mo", auto_adjust=True)
-    sp500 = sp500["Close"].rename("sp500_close")
+    sp500 = sp500["Close"].rename(columns={"Close": "sp500_close"})
     sp500.index = sp500.index.to_period("M").to_timestamp()
-    sp500_ret = sp500.pct_change().rename("mkt_ret")
+    sp500_ret = sp500.pct_change().rename(columns={"^GSPC": "mkt_ret"})
 
     # --- Risk-free rate (3-month T-bill from FRED) ---
     # TB3MS = 3-Month Treasury Bill Secondary Market Rate (monthly, annualized %)
@@ -42,16 +42,23 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
     }
 
     macro_raw = web.DataReader(list(fred_series.keys()), "fred", start, end)
-    macro_raw = macro_raw.rsample("MS").last()
+    macro_raw = macro_raw.resample("MS").last()
     macro_raw = macro_raw.rename(columns=fred_series)
     macro_raw = macro_raw / 100
 
     macro_raw["tms"] = macro_raw["lty"] - macro_raw["tbl"]
-    macro_raw["tms"] = macro_raw["baa"] - macro_raw["aaa"]
+    macro_raw["dfy"] = macro_raw["baa"] - macro_raw["aaa"]
     macro_raw["infl"] = macro_raw["cpi"].pct_change()
     macro_raw["infl"] = macro_raw["infl"].shift(1)
 
     daily_sp500 = yf.download("^GSPC", start=start, end=end, interval="1d", auto_adjust=True)
     daily_sp500 = daily_sp500["Close"].pct_change().dropna()
     daily_sp500.index = pd.to_datetime(daily_sp500.index)
-    svar = daily_sp500.resample("MS").apply(lambda x: (x**2).sum()).rename("svar")
+    svar = daily_sp500.resample("MS").apply(lambda x: (x**2).sum()).rename(columns={"^GSPC":"svar"})
+
+    df = df.join(macro_raw[["tbl", "lty", "tms", "dfy", "infl"]], how="left")
+    # how come we join daily on monthly data?
+    df = df.join(svar, how='left')
+    df = df.dropna()
+
+    return df
