@@ -7,8 +7,8 @@ from typing import Optional
 import traceback
 
 # Import our modules
-from data.fetcher import fetch_stock_data, fetch_sp500_and_macro
-from data.features import build_gkx_features, build_target_variable, create_modeling_dataset
+from data.fetcher import fetch_sp500_macro
+from data.features import fetch_stock_data, build_gkx_features, build_target_variable, create_modeling_dataset
 from models.baseline import compute_oos_r2, run_all_wg_predictors
 from models.ml_pipeline import (temporal_train_val_test_split, split_xy,
                                   train_ridge, train_random_forest, train_neural_net,
@@ -63,7 +63,7 @@ def get_baseline(req: PredictionRequest):
     Returns a table and cumulative R² curves.
     """
     try:
-        macro_df = fetch_sp500_and_macro(start=req.start_date, end=req.end_date)
+        macro_df = fetch_sp500_macro(start=req.start_date, end=req.end_date)
         summary_table = run_all_wg_predictors(macro_df)
         
         # Build cumulative R² time series for each predictor (for interactive chart)
@@ -93,7 +93,7 @@ def get_predictions(req: PredictionRequest):
     try:
         # Fetch data
         stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
-        macro_df = fetch_sp500_and_macro(start=req.start_date, end=req.end_date)
+        macro_df = fetch_sp500_macro(start=req.start_date, end=req.end_date)
         
         # Build features and target
         features = build_gkx_features(stock_df, macro_df)

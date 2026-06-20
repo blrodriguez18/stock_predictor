@@ -65,12 +65,9 @@ def train_random_forest(train, val, target_col: str = "fwd_ret_21d"):
     X_train, y_train = split_xy(train, target_col)
     X_val, y_val = split_xy(val, target_col)
 
-
+    best_r2,  best_params, best_model = -np.inf, {}, None
+    
     feature_names = [c for c in train.columns if c != target_col]
-
-    best_r2, best_params, best_model = -np.inf, {}, None
-
-    best_r2,  best_params, best_model = -np.inf, {}, None, feature_names = [c for c in train.columns if c != target_col]
 
     for n_est in [100, 200]:
         for max_depth in [3, 5, 8]:
