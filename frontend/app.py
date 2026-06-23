@@ -184,7 +184,14 @@ with tab3:
                 "ml_return_override": ml_return,
                 "ml_vol_override": ml_vol,
             }, timeout=60)
-            mc = resp.json()
+            # mc = resp.json()
+            try:
+                resp.raise_for_status()
+                mc = resp.json()
+            except Exception as e:
+                st.error(f"Request failed: {e}")
+                st.text(resp.text)
+                st.stop()
             
             days = mc["days"]
             bands = mc["bands"]
