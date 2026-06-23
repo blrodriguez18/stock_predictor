@@ -9,13 +9,12 @@ def fetch_stock_data(ticker: str, start: str, end: str) -> pd.DataFrame:
 
     # Flatten MultiIndex columns if needed
     if isinstance(df.columns, pd.MultiIndex):
-        df.columns = [
-            "_".join(str(part).lower() for part in col if part)
-            for col in df.columns]
+        # Keep only the first level (Close, High, Low, ...)
+        df.columns = [str(col[0]).lower() for col in df.columns]
     else:
         df.columns = [str(c).lower() for c in df.columns]
 
-    df.index = pd.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index)
     return df
 
 

@@ -43,6 +43,8 @@ class DCFRequest(BaseModel):
 
 class MonteCarloRequest(BaseModel):
     ticker: str
+    start_date: str          # "YYYY-MM-DD"
+    end_date: str
     horizon_days: int = 252
     n_simulations: int = 10_000
     ml_return_override: Optional[float] = None
@@ -86,7 +88,7 @@ def get_baseline(req: PredictionRequest):
 
 @app.post("/api/predict")
 def get_predictions(req: PredictionRequest):
-    """
+    """ 
     Tab 2: ML model predictions + feature importance.
     Runs Ridge → RF → NN pipeline, returns OOS R² comparison.
     """
@@ -127,6 +129,7 @@ def get_predictions(req: PredictionRequest):
             "val_r2": rf_meta["val_r2"],
             "feature_importances": rf_meta["feature_importances"].head(10).to_dict(),
         }
+
         
         # Neural Network (may be slow without GPU — optional flag)
         try:
@@ -174,6 +177,9 @@ def get_monte_carlo(req: MonteCarloRequest):
     #                              pd.Timestamp.today().strftime("%Y-%m-%d"))
     stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
     # Use last available price
+    print("Columns:", stock_df.columns)
+    print("Columns list:", stock_df.columns.tolist())
+    print(stock_df.head())
     current_price = float(stock_df["close"].iloc[-1])
     
     # Get historical vol if no override
