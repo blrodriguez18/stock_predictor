@@ -182,6 +182,8 @@ with tab3:
         with st.spinner("Running 10,000 simulations..."):
             resp = requests.post(f"{API_BASE}/api/montecarlo", json={
                 "ticker": ticker,
+                "start_date": start_date.isoformat(),   
+                "end_date": end_date.isoformat(),
                 "horizon_days": mc_horizon,
                 "n_simulations": 10_000,
                 "ml_return_override": ml_return,
