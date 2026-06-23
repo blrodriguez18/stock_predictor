@@ -92,6 +92,10 @@ def get_predictions(req: PredictionRequest):
     """
     try:
         # Fetch data
+        print("REQ PAYLOAD:", req)
+        print("ticker:", req.ticker)
+        print("start:", req.start_date)
+        print("end:", req.end_date)
         stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
         macro_df = fetch_sp500_macro(start=req.start_date, end=req.end_date)
         
@@ -165,9 +169,10 @@ def get_predictions(req: PredictionRequest):
 @app.post("/api/montecarlo")
 def get_monte_carlo(req: MonteCarloRequest):
     """Tab 3: Monte Carlo simulation."""
-    stock_df = fetch_stock_data(req.ticker, 
-                                 pd.Timestamp.today().strftime("%Y-%m-%d"), 
-                                 pd.Timestamp.today().strftime("%Y-%m-%d"))
+    # stock_df = fetch_stock_data(req.ticker, 
+    #                              pd.Timestamp.today().strftime("%Y-%m-%d"), 
+    #                              pd.Timestamp.today().strftime("%Y-%m-%d"))
+    stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
     # Use last available price
     current_price = float(stock_df["close"].iloc[-1])
     

@@ -18,7 +18,7 @@ with st.sidebar:
     st.header("⚙️ Settings")
     ticker = st.text_input("Stock Ticker", value="AAPL").upper().strip()
     start_date = st.date_input("Start Date", value=date(2015, 1, 1))
-    end_date = st.date_input("End Date", value=date.today())
+    end_date = st.date_input("End Date", value=date.today() - timedelta(days=1))
     horizon = st.selectbox("Prediction Horizon", [5, 10, 21, 63], index=2, 
                             format_func=lambda x: f"{x} days (~{x//21 or 1} month)")
     run_btn = st.button("🚀 Run Analysis", type="primary", use_container_width=True)
@@ -45,6 +45,9 @@ with tab1:
     if run_btn:
         with st.spinner("Computing OOS R² for macro predictors..."):
             try:
+                st.write("sending start:", start_date)
+                st.write("sending end:", end_date)
+                # st.write("payload:", payload)
                 resp = requests.post(f"{API_BASE}/api/baseline", json={
                     "ticker": ticker,
                     "start_date": str(start_date),
