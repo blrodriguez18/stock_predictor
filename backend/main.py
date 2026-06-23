@@ -99,28 +99,34 @@ def get_predictions(req: PredictionRequest):
         print("start:", req.start_date)
         print("end:", req.end_date)
         stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
+        print("after fetch_stock_data")
         macro_df = fetch_sp500_macro(start=req.start_date, end=req.end_date)
+        print("after fetch_sp500_macro")
         
+
         # Build features and target
         features = build_gkx_features(stock_df, macro_df)
+        print("after build_gkx_features")
         dataset = create_modeling_dataset(stock_df, features, req.horizon_days)
-        
+        print("after create_modeling_dataset", dataset.shape)
+
         if len(dataset) < 200:
             raise HTTPException(status_code=400, detail="Not enough data (need 200+ obs)")
         
         target_col = f"fwd_ret_{req.horizon_days}d"
-        
+
         # Split
         train, val, test = temporal_train_val_test_split(dataset)
         X_test, y_test = split_xy(test, target_col)
-        
+        print("after split")
         results = {}
         
         # Ridge
         ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
         ridge_oos = evaluate_oos(ridge_model, X_test, y_test, "sklearn", ridge_scaler)
         results["ridge"] = {"oos_r2": ridge_oos["oos_r2"], "val_r2": ridge_meta["val_r2"]}
-        
+        print("after ridge")
+
         # Random Forest
         rf_model, rf_meta = train_random_forest(train, val, target_col)
         rf_oos = evaluate_oos(rf_model, X_test, y_test, "sklearn")
@@ -129,7 +135,7 @@ def get_predictions(req: PredictionRequest):
             "val_r2": rf_meta["val_r2"],
             "feature_importances": rf_meta["feature_importances"].head(10).to_dict(),
         }
-
+        print("after rf")
         
         # Neural Network (may be slow without GPU — optional flag)
         try:
@@ -140,7 +146,8 @@ def get_predictions(req: PredictionRequest):
             best_preds = nn_oos["predictions"]
         except Exception:
             best_preds = rf_oos["predictions"]
-        
+        print("after nn")
+
         # Backtest: long when predicted return > 0, else hold cash
         test_dates = test.index.strftime("%Y-%m-%d").tolist()
         actual_returns = y_test.tolist()
@@ -165,8 +172,12 @@ def get_predictions(req: PredictionRequest):
         }
     except HTTPException:
         raise
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=traceback.format_exc())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=traceback.format_exc())
+        print("PREDICT ERROR:", repr(e))
+        print(traceback.format_exc())
+        raise
 
 
 @app.post("/api/montecarlo")
