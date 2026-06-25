@@ -56,7 +56,7 @@ def temporal_train_val_test_split(dataset: pd.DataFrame, val_frac: float = 0.15,
 
 
 def split_xy(df: pd.DataFrame, target_col: str):
-    X = df.drop(columns=[target_col]).values
+    X = df.drop(columns=[target_col])
     y = df[target_col].values
 
     return X, y
