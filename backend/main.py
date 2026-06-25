@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from typing import Optional
 import traceback
+import math
 
 # Import our modules
 from data.fetcher import fetch_sp500_macro
@@ -77,11 +78,22 @@ def get_baseline(req: PredictionRequest):
                     "dates": result["results_df"].index.strftime("%Y-%m-%d").tolist(),
                     "cum_oos_r2": result["results_df"]["cum_oos_r2"].tolist(),
                 }
+
+        def sanitize_for_json(obj):
+            """Recursively replace nan/inf with None so JSON serialization doesn't crash."""
+            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                return None
+            if isinstance(obj, dict):
+                return {k: sanitize_for_json(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [sanitize_for_json(v) for v in obj]
+            return obj
         
-        return {
-            "summary": summary_table.to_dict(orient="records"),
-            "curves": curves,
-        }
+        # return {
+        #     "summary": summary_table.to_dict(orient="records"),
+        #     "curves": curves,
+        # }
+        return sanitize_for_json(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -118,6 +130,21 @@ def get_predictions(req: PredictionRequest):
         # Split
         train, val, test = temporal_train_val_test_split(dataset)
         X_test, y_test = split_xy(test, target_col)
+        try:
+            train, val, test = temporal_train_val_test_split(dataset)
+            print("train shape:", train.shape)
+            print("val shape:", val.shape)
+            print("test shape:", test.shape)
+
+            X_test, y_test = split_xy(test, target_col)
+            print("X_test shape:", X_test.shape)
+            print("y_test shape:", y_test.shape)
+        except Exception as e:
+            print("SPLIT ERROR:", repr(e))
+            print(traceback.format_exc())
+            raise
+
+    
         print("after split")
         results = {}
         
@@ -159,6 +186,11 @@ def get_predictions(req: PredictionRequest):
         # Cumulative returns
         cum_strategy = (1 + strategy_returns).cumprod().tolist()
         cum_bnh = (1 + bnh_returns).cumprod().tolist()
+
+        print(results)
+        print(cum_strategy[:5], cum_bnh[:5])
+        print("strategy_sharpe", np.mean(strategy_returns) / (np.std(strategy_returns) + 1e-8) * np.sqrt(252 / req.horizon_days))
+        print("bnh_sharpe", np.mean(bnh_returns) / (np.std(bnh_returns) + 1e-8) * np.sqrt(252 / req.horizon_days))
         
         return {
             "model_comparison": results,
@@ -170,6 +202,7 @@ def get_predictions(req: PredictionRequest):
                 "bnh_sharpe": float(np.mean(bnh_returns) / (np.std(bnh_returns) + 1e-8) * np.sqrt(252/req.horizon_days)),
             },
         }
+    
     except HTTPException:
         raise
     # except Exception as e:

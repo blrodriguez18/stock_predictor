@@ -5,7 +5,7 @@ import pandas_datareader.data as web
 import pandas as pd
 import numpy as np
 from datetime import datetime
-
+    
 
 def fetch_sp500_macro(start="1990-01-01", end=None):
     """
@@ -28,15 +28,19 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
         auto_adjust=True,
         progress=False,
     )
-
-    if sp500_daily.empty:
-        raise ValueError(f"No S&P 500 data returned for {start.date()} to {end.date()}")
+    # sp500 = sp500["Close"].rename("sp500_price")
+    # sp500.index = sp500.index.to_period("M").to_timestamp()
+    # sp500_ret = sp500.pct_change().rename("mkt_ret")
 
     # Make sure Close is a Series
     close = sp500_daily["Close"]
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
     close = close.squeeze()
+
+    # if end is None:
+    #     end = datetime.today().strftime("%Y-%m-%d")
+
 
     # Monthly market return
     monthly_close = close.resample("MS").last()
@@ -51,6 +55,7 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
     # --- Equity premium = market return - risk-free rate ---
     df = mkt_ret.to_frame().join(tbill, how="inner")
     df["eq_premium"] = df["mkt_ret"] - df["rf"]
+    
 
     # --- Macro predictors from FRED ---
     fred_series = {
@@ -60,21 +65,42 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
         "BAMLC0A1CAAA": "aaa",
         "CPIAUCSL": "cpi",
     }
-
+    
     macro_raw = web.DataReader(list(fred_series.keys()), "fred", start, end)
     macro_raw = macro_raw.resample("MS").last()
     macro_raw = macro_raw.rename(columns=fred_series)
+    macro_raw = macro_raw / 100  # convert % to decimal where applicable
 
-    # Convert rates/yields to decimals
-    for col in ["lty", "tbl", "baa", "aaa"]:
-        macro_raw[col] = macro_raw[col] / 100
-
-    # CPI inflation proxy
-    macro_raw["infl"] = macro_raw["cpi"].pct_change().shift(1)
+    # Derived predictors
+    macro_raw["tms"] = macro_raw["lty"] - macro_raw["tbl"]   # term spread
+    macro_raw["dfy"] = macro_raw["baa"] - macro_raw["aaa"]   # default yield spread
+    macro_raw["infl"] = macro_raw["cpi"].pct_change()         # inflation rate
+    # NOTE: FRED inflation is lagged 1 month before use (info available next month)
+    macro_raw["infl"] = macro_raw["infl"].shift(1)
 
     # --- Monthly realized variance from daily S&P 500 returns ---
+    # daily_ret = close.pct_change().dropna()
+    # svar = daily_ret.resample("MS").apply(lambda x: (x**2).sum()).rename("svar").to_frame()
+
+
+    # S&P 500 stock variance: sum of squared DAILY returns per month
+    sp500_daily = yf.download("^GSPC", start=start, end=end, interval="1d", auto_adjust=True, progress=False)
+    if sp500_daily.empty:
+        raise ValueError(f"No S&P 500 data returned for {start.date()} to {end.date()}")
+
+    sp500_daily = sp500_daily["Close"].pct_change().dropna()
+    print(type(sp500_daily))
+    print(sp500_daily.head())
+    # close = sp500_daily["Close"]
+    # if isinstance(close, pd.DataFrame):
+    #     close = close.iloc[:, 0]
+    # close = close.squeeze()
+
+    sp500_daily.index = pd.to_datetime(sp500_daily.index)
+
     daily_ret = close.pct_change().dropna()
-    svar = daily_ret.resample("MS").apply(lambda x: (x**2).sum()).rename("svar").to_frame()
+    svar = daily_ret.resample("MS").apply(lambda x: (x ** 2).sum()).rename("svar").to_frame()
+
 
     # --- Join everything ---
     df = df.join(macro_raw[["tbl", "lty", "baa", "aaa", "infl", "tms", "dfy"]], how="left")
@@ -82,3 +108,6 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
     df = df.dropna()
 
     return df
+
+    
+    

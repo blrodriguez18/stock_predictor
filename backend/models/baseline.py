@@ -78,3 +78,5 @@ def run_all_wg_predictors(df: pd.DataFrame) -> pd.DataFrame:
         })
     
     return pd.DataFrame(rows).sort_values("OOS R² (%)", ascending=False)
+
+

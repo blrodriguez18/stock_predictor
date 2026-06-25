@@ -12,24 +12,50 @@ import mlflow.sklearn
 import mlflow.pytorch
 
 
+# def temporal_train_val_test_split(dataset: pd.DataFrame, val_frac: float = 0.15, test_frac: float = 0.20):
+#     n = len(dataset)
+#     train_end = int(n * (1 - val_frac - test_frac))
+#     val_end = int(n * (1 - test_frac))
+    
+#     train = dataset.iloc[:train_end]
+#     val = dataset.iloc[train_end:val_end]
+#     test = dataset.iloc[val_end:]
+    
+#     print(f"Train: {train.index[0].date()} → {train.index[-1].date()} ({len(train)} obs)")
+#     print(f"Val:   {val.index[0].date()} → {val.index[-1].date()} ({len(val)} obs)")
+#     print(f"Test:  {test.index[0].date()} → {test.index[-1].date()} ({len(test)} obs)")
+    
+#     return train, val, test
+
+
 def temporal_train_val_test_split(dataset: pd.DataFrame, val_frac: float = 0.15, test_frac: float = 0.20):
     n = len(dataset)
+    if n == 0:
+        raise ValueError("Dataset is empty")
+
     train_end = int(n * (1 - val_frac - test_frac))
     val_end = int(n * (1 - test_frac))
-    
+
     train = dataset.iloc[:train_end]
     val = dataset.iloc[train_end:val_end]
     test = dataset.iloc[val_end:]
-    
+
+    print(f"train len={len(train)}, val len={len(val)}, test len={len(test)}")
+
+    if len(train) == 0 or len(val) == 0 or len(test) == 0:
+        raise ValueError(
+            f"Empty split: train={len(train)}, val={len(val)}, test={len(test)}"
+        )
+
     print(f"Train: {train.index[0].date()} → {train.index[-1].date()} ({len(train)} obs)")
     print(f"Val:   {val.index[0].date()} → {val.index[-1].date()} ({len(val)} obs)")
     print(f"Test:  {test.index[0].date()} → {test.index[-1].date()} ({len(test)} obs)")
-    
+
     return train, val, test
 
 
 def split_xy(df: pd.DataFrame, target_col: str):
-    X = df.drop(columns=["target_col"]).values
+    X = df.drop(columns=[target_col]).values
     y = df[target_col].values
 
     return X, y
