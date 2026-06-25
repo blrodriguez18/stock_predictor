@@ -26,6 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def sanitize_for_json(obj):
+            """Recursively replace nan/inf with None so JSON serialization doesn't crash."""
+            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                return None
+            if isinstance(obj, dict):
+                return {k: sanitize_for_json(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [sanitize_for_json(v) for v in obj]
+            return obj
 
 # ---- REQUEST/RESPONSE MODELS ----
 
@@ -78,22 +87,11 @@ def get_baseline(req: PredictionRequest):
                     "dates": result["results_df"].index.strftime("%Y-%m-%d").tolist(),
                     "cum_oos_r2": result["results_df"]["cum_oos_r2"].tolist(),
                 }
-
-        def sanitize_for_json(obj):
-            """Recursively replace nan/inf with None so JSON serialization doesn't crash."""
-            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
-                return None
-            if isinstance(obj, dict):
-                return {k: sanitize_for_json(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [sanitize_for_json(v) for v in obj]
-            return obj
         
-        # return {
-        #     "summary": summary_table.to_dict(orient="records"),
-        #     "curves": curves,
-        # }
-        return sanitize_for_json(result)
+        return sanitize_for_json({
+            "summary": summary_table.to_dict(orient="records"),
+            "curves": curves,
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
