@@ -327,6 +327,7 @@ def build_gkx_features(df: pd.DataFrame, macro_df: pd.DataFrame = None) -> pd.Da
     for col in feat.columns:
         feat[col] = feat[col].expanding().rank(pct=True) * 2 - 1
         
+    feat = feat.drop(columns=["beta", "beta_sq", "ivol"])
     
     return feat
 

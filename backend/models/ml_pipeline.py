@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge, RidgeCV
+from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
@@ -61,9 +62,52 @@ def split_xy(df: pd.DataFrame, target_col: str):
     return X, y
 
 
-def train_ridge(train, val, target_col: str="fwd_ret_21d"):
+# def train_ridge(train, val, target_col: str="fwd_ret_21d"):
+#     X_train, y_train = split_xy(train, target_col)
+#     X_val, y_val = split_xy(val, target_col)
+
+#     scaler = StandardScaler()
+#     X_train_s = scaler.fit_transform(X_train)
+#     X_val_s = scaler.transform(X_val)
+
+#     best_alpha, best_r2 = None, -np.inf
+#     for alpha in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+#         ridge = Ridge(alpha=alpha).fit(X_train_s, y_train)
+#         val_preds = ridge.predict(X_val_s)
+#         r2 = r2_score(y_val, val_preds)
+#         if r2 > best_r2:
+#             best_r2 = r2
+#             best_alpha = alpha
+
+#     X_tv = scaler.fit_transform(np.vstack([X_train, X_val]))
+#     y_tv = np.concatenate([y_train, y_val])
+#     final_ridge = Ridge(alpha=best_alpha).fit(X_tv, y_tv)
+
+#     print(f"Ridge best alpha: {best_alpha}, Val R²: {best_r2:.6f}")
+
+#     return final_ridge, scaler, {"best_alpha": best_alpha, "val_r2": best_r2}
+
+
+def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     X_train, y_train = split_xy(train, target_col)
     X_val, y_val = split_xy(val, target_col)
+
+    # Remove inf values first
+    X_train = X_train.replace([np.inf, -np.inf], np.nan)
+    X_val = X_val.replace([np.inf, -np.inf], np.nan)
+
+    # Drop columns that are entirely NaN in training
+    keep_cols = X_train.columns[~X_train.isna().all()]
+    X_train = X_train[keep_cols]
+    X_val = X_val[keep_cols]
+
+    # Fill remaining NaNs using training medians
+    medians = X_train.median(numeric_only=True)
+    X_train = X_train.fillna(medians)
+    X_val = X_val.fillna(medians)
+
+    print("NaN columns in X_train:", X_train.columns[X_train.isna().any()].tolist())
+    print("NaN counts:\n", X_train.isna().sum().sort_values(ascending=False).head(20))
 
     scaler = StandardScaler()
     X_train_s = scaler.fit_transform(X_train)
@@ -83,9 +127,7 @@ def train_ridge(train, val, target_col: str="fwd_ret_21d"):
     final_ridge = Ridge(alpha=best_alpha).fit(X_tv, y_tv)
 
     print(f"Ridge best alpha: {best_alpha}, Val R²: {best_r2:.6f}")
-
     return final_ridge, scaler, {"best_alpha": best_alpha, "val_r2": best_r2}
-
 
 def train_random_forest(train, val, target_col: str = "fwd_ret_21d"):
     X_train, y_train = split_xy(train, target_col)
