@@ -214,9 +214,6 @@ def get_predictions(req: PredictionRequest):
 @app.post("/api/montecarlo")
 def get_monte_carlo(req: MonteCarloRequest):
     """Tab 3: Monte Carlo simulation."""
-    # stock_df = fetch_stock_data(req.ticker, 
-    #                              pd.Timestamp.today().strftime("%Y-%m-%d"), 
-    #                              pd.Timestamp.today().strftime("%Y-%m-%d"))
     stock_df = fetch_stock_data(req.ticker, req.start_date, req.end_date)
     # Use last available price
     print("Columns:", stock_df.columns)
