@@ -332,7 +332,7 @@ def build_gkx_features(df: pd.DataFrame, macro_df: pd.DataFrame = None) -> pd.Da
     return feat
 
 
-
+# why is pct change.shift (-days) the same as shift(-days) / orig - 1
 # def build_target_variable(df: pd.DataFrame, horizon_days: int = 21) -> pd.Series:
     # Forward return: what will the price be in `horizon_days` days?
     # fwd_return = df["close"].pct_change(horizon_days).shift(-horizon_days)
@@ -347,12 +347,12 @@ def build_target_variable(df: pd.DataFrame, horizon_days: int = 21) -> pd.Series
 def create_modeling_dataset(df: pd.DataFrame, feat: pd.DataFrame, horizon_days: int = 21) -> pd.DataFrame:
     target = build_target_variable(df, horizon_days)
 
-    print("feat shape:", feat.shape)
-    print("target shape:", target.shape)
-    print("feat index type:", type(feat.index))
-    print("target index type:", type(target.index))
-    print("feat index head:", feat.index[:5])
-    print("target index head:", target.index[:5])
+    # print("feat shape:", feat.shape)
+    # print("target shape:", target.shape)
+    # print("feat index type:", type(feat.index))
+    # print("target index type:", type(target.index))
+    # print("feat index head:", feat.index[:5])
+    # print("target index head:", target.index[:5])
 
     dataset = feat.join(target)
     print("after join shape:", dataset.shape)
