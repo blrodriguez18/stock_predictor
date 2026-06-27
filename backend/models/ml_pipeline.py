@@ -41,6 +41,16 @@ def temporal_train_val_test_split(dataset: pd.DataFrame, val_frac: float = 0.15,
     val = dataset.iloc[train_end:val_end]
     test = dataset.iloc[val_end:]
 
+    # Drop columns that are entirely NaN in training
+    keep_cols = train.columns[~train.isna().all()]
+    train = train[keep_cols]
+    val = val[keep_cols]
+
+    # Fill remaining NaNs using training medians
+    medians = train.median(numeric_only=True)
+    train = train.fillna(medians)
+    val = val.fillna(medians)
+
     print(f"train len={len(train)}, val len={len(val)}, test len={len(test)}")
 
     if len(train) == 0 or len(val) == 0 or len(test) == 0:
@@ -96,15 +106,15 @@ def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     X_train = X_train.replace([np.inf, -np.inf], np.nan)
     X_val = X_val.replace([np.inf, -np.inf], np.nan)
 
-    # Drop columns that are entirely NaN in training
-    keep_cols = X_train.columns[~X_train.isna().all()]
-    X_train = X_train[keep_cols]
-    X_val = X_val[keep_cols]
+    # # Drop columns that are entirely NaN in training
+    # keep_cols = X_train.columns[~X_train.isna().all()]
+    # X_train = X_train[keep_cols]
+    # X_val = X_val[keep_cols]
 
-    # Fill remaining NaNs using training medians
-    medians = X_train.median(numeric_only=True)
-    X_train = X_train.fillna(medians)
-    X_val = X_val.fillna(medians)
+    # # Fill remaining NaNs using training medians
+    # medians = X_train.median(numeric_only=True)
+    # X_train = X_train.fillna(medians)
+    # X_val = X_val.fillna(medians)
 
     print("NaN columns in X_train:", X_train.columns[X_train.isna().any()].tolist())
     print("NaN counts:\n", X_train.isna().sum().sort_values(ascending=False).head(20))
@@ -127,11 +137,11 @@ def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     final_ridge = Ridge(alpha=best_alpha).fit(X_tv, y_tv)
 
     print(f"Ridge best alpha: {best_alpha}, Val R²: {best_r2:.6f}")
-    return final_ridge, scaler, return final_ridge, scaler, {
+    return final_ridge, scaler, {
                 "best_alpha": best_alpha,
                 "val_r2": best_r2,
-                "keep_cols": keep_cols.tolist(),
-                "medians": medians.to_dict(),
+                # "keep_cols": keep_cols.tolist(),
+                # "medians": medians.to_dict(),
             }
 
 def train_random_forest(train, val, target_col: str = "fwd_ret_21d"):
@@ -260,7 +270,8 @@ def evaluate_oos(model, X_test, y_test, model_type="sklearn", scaler=None, meta=
     if meta is not None and "keep_cols" in meta:
         X_test = X_test[meta["keep_cols"]]
         medians = pd.Series(meta["medians"])
-        X_test = X_test.fillna(medians)
+        medians = medians.reindex(X_test.columns)
+        X_test = X_test.replace([np.inf, -np.inf], np.nan).fillna(medians)
 
     if scaler is not None:
         X_test = scaler.transform(X_test)
