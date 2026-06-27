@@ -107,14 +107,14 @@ def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     X_val = X_val.replace([np.inf, -np.inf], np.nan)
 
     # # Drop columns that are entirely NaN in training
-    # keep_cols = X_train.columns[~X_train.isna().all()]
-    # X_train = X_train[keep_cols]
-    # X_val = X_val[keep_cols]
+    keep_cols = X_train.columns[~X_train.isna().all()]
+    X_train = X_train[keep_cols]
+    X_val = X_val[keep_cols]
 
     # # Fill remaining NaNs using training medians
-    # medians = X_train.median(numeric_only=True)
-    # X_train = X_train.fillna(medians)
-    # X_val = X_val.fillna(medians)
+    medians = X_train.median(numeric_only=True)
+    X_train = X_train.fillna(medians)
+    X_val = X_val.fillna(medians)
 
     print("NaN columns in X_train:", X_train.columns[X_train.isna().any()].tolist())
     print("NaN counts:\n", X_train.isna().sum().sort_values(ascending=False).head(20))
@@ -137,11 +137,11 @@ def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     final_ridge = Ridge(alpha=best_alpha).fit(X_tv, y_tv)
 
     print(f"Ridge best alpha: {best_alpha}, Val R²: {best_r2:.6f}")
-    return X_train.columns, final_ridge, scaler, {
+    return final_ridge, scaler, {
                 "best_alpha": best_alpha,
                 "val_r2": best_r2,
-                # "keep_cols": keep_cols.tolist(),
-                # "medians": medians.to_dict(),
+                "keep_cols": keep_cols.tolist(),
+                "medians": medians.to_dict(),
             }
 
 def train_random_forest(train, val, target_col: str = "fwd_ret_21d"):
@@ -202,7 +202,7 @@ class StockNN(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.net(x).squeze(-1)
+        return self.net(x).squeeze(-1)
     
 
 def train_neural_net(train, val, target_col: str = "fwd_ret_21d", epochs: int = 100, lr: float = 1e-3, batch_size: int = 256):
@@ -266,10 +266,9 @@ def train_neural_net(train, val, target_col: str = "fwd_ret_21d", epochs: int = 
 
 
 # what is this for
-def evaluate_oos(train_columns, model, X_test, y_test, model_type="sklearn", scaler=None, meta=None):
+def evaluate_oos(model, X_test, y_test, model_type="sklearn", scaler=None, meta=None):
     if meta is not None and "keep_cols" in meta:
-        # X_test = X_test[meta["keep_cols"]]
-        X_test = X_test[train_columns]
+        X_test = X_test[meta["keep_cols"]]
         medians = pd.Series(meta["medians"])
         medians = medians.reindex(X_test.columns)
         X_test = X_test.replace([np.inf, -np.inf], np.nan).fillna(medians)

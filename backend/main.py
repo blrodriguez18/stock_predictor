@@ -126,8 +126,8 @@ def get_predictions(req: PredictionRequest):
         target_col = f"fwd_ret_{req.horizon_days}d"
 
         # Split
-        train, val, test = temporal_train_val_test_split(dataset)
-        X_test, y_test = split_xy(test, target_col)
+        # train, val, test = temporal_train_val_test_split(dataset)
+        # X_test, y_test = split_xy(test, target_col)
         try:
             train, val, test = temporal_train_val_test_split(dataset)
             print("train shape:", train.shape)
@@ -148,8 +148,8 @@ def get_predictions(req: PredictionRequest):
         
 
         # Ridge
-        train_columns, ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
-        ridge_oos = evaluate_oos(train_columns, ridge_model, X_test, y_test, "sklearn", ridge_scaler, ridge_meta)
+        ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
+        ridge_oos = evaluate_oos(ridge_model, X_test, y_test, "sklearn", ridge_scaler, ridge_meta)
         results["ridge"] = {"oos_r2": ridge_oos["oos_r2"], "val_r2": ridge_meta["val_r2"]}
         print("after ridge")
 
@@ -160,6 +160,8 @@ def get_predictions(req: PredictionRequest):
 
         # Random Forest
         rf_model, rf_meta = train_random_forest(train, val, target_col)
+        rf_meta["keep_cols"] = [c for c in train.columns if c != target_col]
+        rf_meta["medians"] = train[rf_meta["keep_cols"]].median(numeric_only=True).to_dict()
         rf_oos = evaluate_oos(rf_model, X_test, y_test, "sklearn")
         results["random_forest"] = {
             "oos_r2": rf_oos["oos_r2"],
@@ -171,6 +173,8 @@ def get_predictions(req: PredictionRequest):
         # Neural Network (may be slow without GPU — optional flag)
         try:
             nn_model, nn_scaler, nn_meta = train_neural_net(train, val, target_col, epochs=50)
+            nn_meta["keep_cols"] = [c for c in train.columns if c != target_col]
+            nn_meta["medians"] = train[nn_meta["keep_cols"]].median(numeric_only=True).to_dict()        
             nn_oos = evaluate_oos(nn_model, X_test, y_test, "pytorch", nn_scaler)
             results["neural_net"] = {"oos_r2": nn_oos["oos_r2"], "val_r2": nn_meta["val_r2"]}
             # Use best model's predictions for backtest
