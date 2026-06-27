@@ -148,8 +148,8 @@ def get_predictions(req: PredictionRequest):
         
 
         # Ridge
-        ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
-        ridge_oos = evaluate_oos(ridge_model, X_test, y_test, "sklearn", ridge_scaler, ridge_meta)
+        train_columns, ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
+        ridge_oos = evaluate_oos(train_columns, ridge_model, X_test, y_test, "sklearn", ridge_scaler, ridge_meta)
         results["ridge"] = {"oos_r2": ridge_oos["oos_r2"], "val_r2": ridge_meta["val_r2"]}
         print("after ridge")
 
