@@ -288,20 +288,23 @@ def delta_hedge_backtest(ticker=TICKER, window=BACKTEST_WINDOW):
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
+# if __name__ == "__main__":
+#     # 1. Pull live options + compute IVs
+#     df, spot = fetch_options(TICKER)
+
+#     # 2. Print vol surface to console
+#     print_vol_surface(df)
+
+#     # 3. Plot vol smile + term structure
+#     plot_vol_surface(df, spot)
+
+#     # 4. Greeks snapshot
+#     print_greeks_summary(df, spot)
+
+#     # 5. Delta-hedge backtest
+#     delta_hedge_backtest(TICKER, BACKTEST_WINDOW)
+
+#     print("Done. Review vol_surface.png and backtest.png.")
+
 if __name__ == "__main__":
-    # 1. Pull live options + compute IVs
-    df, spot = fetch_options(TICKER)
-
-    # 2. Print vol surface to console
-    print_vol_surface(df)
-
-    # 3. Plot vol smile + term structure
-    plot_vol_surface(df, spot)
-
-    # 4. Greeks snapshot
-    print_greeks_summary(df, spot)
-
-    # 5. Delta-hedge backtest
     delta_hedge_backtest(TICKER, BACKTEST_WINDOW)
-
-    print("Done. Review vol_surface.png and backtest.png.")

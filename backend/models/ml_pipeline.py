@@ -127,7 +127,12 @@ def train_ridge(train, val, target_col: str = "fwd_ret_21d"):
     final_ridge = Ridge(alpha=best_alpha).fit(X_tv, y_tv)
 
     print(f"Ridge best alpha: {best_alpha}, Val R²: {best_r2:.6f}")
-    return final_ridge, scaler, {"best_alpha": best_alpha, "val_r2": best_r2}
+    return final_ridge, scaler, return final_ridge, scaler, {
+                "best_alpha": best_alpha,
+                "val_r2": best_r2,
+                "keep_cols": keep_cols.tolist(),
+                "medians": medians.to_dict(),
+            }
 
 def train_random_forest(train, val, target_col: str = "fwd_ret_21d"):
     X_train, y_train = split_xy(train, target_col)
@@ -251,9 +256,16 @@ def train_neural_net(train, val, target_col: str = "fwd_ret_21d", epochs: int = 
 
 
 # what is this for
-def evaluate_oos(model, X_test, y_test, model_type="sklearn", scaler=None):
+def evaluate_oos(model, X_test, y_test, model_type="sklearn", scaler=None, meta=None):
+    if meta is not None and "keep_cols" in meta:
+        X_test = X_test[meta["keep_cols"]]
+        medians = pd.Series(meta["medians"])
+        X_test = X_test.fillna(medians)
+
     if scaler is not None:
         X_test = scaler.transform(X_test)
+
+    # preds = model.predict(X_test)
     
     if model_type == "pytorch":
         model.eval()

@@ -146,9 +146,14 @@ def get_predictions(req: PredictionRequest):
         print("after split")
         results = {}
         
+        print("train cols used:", ridge_meta["keep_cols"])
+        print("X_test cols:", X_test.columns.tolist())
+        print("train count:", len(ridge_meta["keep_cols"]))
+        print("test count:", X_test.shape[1])
+
         # Ridge
         ridge_model, ridge_scaler, ridge_meta = train_ridge(train, val, target_col)
-        ridge_oos = evaluate_oos(ridge_model, X_test, y_test, "sklearn", ridge_scaler)
+        ridge_oos = evaluate_oos(ridge_model, X_test, y_test, "sklearn", ridge_scaler, ridge_meta)
         results["ridge"] = {"oos_r2": ridge_oos["oos_r2"], "val_r2": ridge_meta["val_r2"]}
         print("after ridge")
 
