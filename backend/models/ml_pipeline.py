@@ -45,11 +45,13 @@ def temporal_train_val_test_split(dataset: pd.DataFrame, val_frac: float = 0.15,
     keep_cols = train.columns[~train.isna().all()]
     train = train[keep_cols]
     val = val[keep_cols]
+    test = test[keep_cols]
 
     # Fill remaining NaNs using training medians
     medians = train.median(numeric_only=True)
     train = train.fillna(medians)
     val = val.fillna(medians)
+    test = test.fillna(medians)
 
     print(f"train len={len(train)}, val len={len(val)}, test len={len(test)}")
 

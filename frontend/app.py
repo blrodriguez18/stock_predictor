@@ -62,13 +62,15 @@ with tab1:
                 
                 # Color-code: green if positive, red if negative
                 def color_r2(val):
-                    color = "green" if val > 0 else "red"
-                    return f"color: {color}"
+                    if val is None or pd.isna(val):
+                        return "color: gray"
+                    return "color: green" if val > 0 else "color: red"
                 
                 st.dataframe(
-                    summary.style.applymap(color_r2, subset=["OOS R² (%)"]),
+                    summary.style.map(color_r2, subset=["OOS R² (%)"]),
                     use_container_width=True
                 )
+                
                 
                 # Cumulative R² chart
                 st.subheader("📈 Cumulative OOS R² Over Time")
