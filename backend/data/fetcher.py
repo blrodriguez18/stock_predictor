@@ -28,19 +28,12 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
         auto_adjust=True,
         progress=False,
     )
-    # sp500 = sp500["Close"].rename("sp500_price")
-    # sp500.index = sp500.index.to_period("M").to_timestamp()
-    # sp500_ret = sp500.pct_change().rename("mkt_ret")
 
     # Make sure Close is a Series
     close = sp500_daily["Close"]
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
     close = close.squeeze()
-
-    # if end is None:
-    #     end = datetime.today().strftime("%Y-%m-%d")
-
 
     # Monthly market return
     monthly_close = close.resample("MS").last()
@@ -78,11 +71,6 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
     # NOTE: FRED inflation is lagged 1 month before use (info available next month)
     macro_raw["infl"] = macro_raw["infl"].shift(1)
 
-    # --- Monthly realized variance from daily S&P 500 returns ---
-    # daily_ret = close.pct_change().dropna()
-    # svar = daily_ret.resample("MS").apply(lambda x: (x**2).sum()).rename("svar").to_frame()
-
-
     # S&P 500 stock variance: sum of squared DAILY returns per month
     sp500_daily = yf.download("^GSPC", start=start, end=end, interval="1d", auto_adjust=True, progress=False)
     if sp500_daily.empty:
@@ -91,10 +79,6 @@ def fetch_sp500_macro(start="1990-01-01", end=None):
     sp500_daily = sp500_daily["Close"].pct_change().dropna()
     print(type(sp500_daily))
     print(sp500_daily.head())
-    # close = sp500_daily["Close"]
-    # if isinstance(close, pd.DataFrame):
-    #     close = close.iloc[:, 0]
-    # close = close.squeeze()
 
     sp500_daily.index = pd.to_datetime(sp500_daily.index)
 

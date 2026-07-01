@@ -125,9 +125,6 @@ def get_predictions(req: PredictionRequest):
         
         target_col = f"fwd_ret_{req.horizon_days}d"
 
-        # Split
-        # train, val, test = temporal_train_val_test_split(dataset)
-        # X_test, y_test = split_xy(test, target_col)
         try:
             train, val, test = temporal_train_val_test_split(dataset)
             print("train shape:", train.shape)
@@ -213,8 +210,6 @@ def get_predictions(req: PredictionRequest):
     
     except HTTPException:
         raise
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=traceback.format_exc())
     except Exception as e:
         print("PREDICT ERROR:", repr(e))
         print(traceback.format_exc())
